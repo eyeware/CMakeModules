@@ -38,9 +38,9 @@ if (NOT NUMPY_FOUND)
         set (NUMPY_ROOT_DIR ${CMAKE_INSTALL_PREFIX})
     endif (NOT NUMPY_ROOT_DIR)
 
-    if (NOT PYTHON_FOUND)
-        find_package (Python)
-    endif (NOT PYTHON_FOUND)
+    if (NOT PYTHONINTERP_FOUND)
+        find_package (PythonInterp)
+    endif 
 
     ##__________________________________________________________________________
     ## Check for the header files
