@@ -40,48 +40,65 @@ if (NOT NUMPY_FOUND)
 
     if (NOT PYTHONINTERP_FOUND)
         find_package (PythonInterp)
-    endif 
+    endif (NOT PYTHONINTERP_FOUND) 
 
     ##__________________________________________________________________________
     ## Check for the header files
 
     ## Use Python to determine the include directory
     execute_process (
-        COMMAND ${PYTHON_EXECUTABLE} -c import\ numpy\;\ print\ numpy.get_include\(\)\;
+        COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.get_include());"
         ERROR_VARIABLE NUMPY_FIND_ERROR
         RESULT_VARIABLE NUMPY_FIND_RESULT
         OUTPUT_VARIABLE NUMPY_FIND_OUTPUT
         OUTPUT_STRIP_TRAILING_WHITESPACE
         )
+
     ## process the output from the execution of the command
     if (NOT NUMPY_FIND_RESULT)
         set (NUMPY_INCLUDES ${NUMPY_FIND_OUTPUT})
     endif (NOT NUMPY_FIND_RESULT)
 
+    unset (NUMPY_LIBRARIES)
+
+    ##__________________________________________________________________________
+    ## Find numpy root dir
+
+    execute_process (
+        COMMAND ${PYTHON_EXECUTABLE} -c "from os.path import dirname; import numpy; print(dirname(dirname(numpy.get_include())));"
+        ERROR_VARIABLE NUMPY_ROOT_DIR_ERROR
+        RESULT_VARIABLE NUMPY_ROOT_DIR_RESULT
+        OUTPUT_VARIABLE NUMPY_ROOT_DIR_OUTPUT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+
+    if (NOT NUMPY_ROOT_DIR_RESULT)
+        set(NUMPY_ROOT_DIR ${NUMPY_ROOT_DIR_OUTPUT})
+    endif ()
+
+    message("NUMPY_ROOT_DIR ${NUMPY_ROOT_DIR}")
     ##__________________________________________________________________________
     ## Check for the library
 
-    unset (NUMPY_LIBRARIES)
-
-    if (PYTHON_SITE_PACKAGES)
+    if (NUMPY_ROOT_DIR)
         find_library (NUMPY_NPYMATH_LIBRARY npymath
-            HINTS ${PYTHON_SITE_PACKAGES}/numpy/core
+            HINTS ${NUMPY_ROOT_DIR}/core
             PATH_SUFFIXES lib
             )
         if (NUMPY_NPYMATH_LIBRARY)
             list (APPEND NUMPY_LIBRARIES ${NUMPY_NPYMATH_LIBRARY})
         endif (NUMPY_NPYMATH_LIBRARY)
-    endif (PYTHON_SITE_PACKAGES)
+    endif (NUMPY_ROOT_DIR)
 
     ##__________________________________________________________________________
     ## Get API version of NumPy from 'numpy/numpyconfig.h'
 
     if (PYTHON_EXECUTABLE)
         execute_process (
-            COMMAND ${PYTHON_EXECUTABLE} -c import\ numpy\;\ print\ numpy.__version__;
-            ERROR_VARIABLE NUMPY_API_VERSION_ERROR
-            RESULT_VARIABLE NUMPY_API_VERSION_RESULT
-            OUTPUT_VARIABLE NUMPY_API_VERSION
+            COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.__version__);"
+            ERROR_VARIABLE NUMPY_VERSION_ERROR
+            RESULT_VARIABLE NUMPY_VERSION_RESULT
+            OUTPUT_VARIABLE NUMPY_VERSION
             OUTPUT_STRIP_TRAILING_WHITESPACE
             )
     else ()
@@ -94,12 +111,12 @@ if (NOT NUMPY_FOUND)
     endif ()
 
     ## Dissect full version number into major, minor and patch version
-    if (NUMPY_API_VERSION)
-        string (REGEX REPLACE "\\." ";" _tmp ${NUMPY_API_VERSION})
-        list (GET _tmp 0 NUMPY_API_VERSION_MAJOR)
-        list (GET _tmp 1 NUMPY_API_VERSION_MINOR)
-        list (GET _tmp 2 NUMPY_API_VERSION_PATCH)
-    endif (NUMPY_API_VERSION)
+    if (NUMPY_VERSION)
+        string (REGEX REPLACE "\\." ";" _tmp ${NUMPY_VERSION})
+        list (GET _tmp 0 NUMPY_VERSION_MAJOR)
+        list (GET _tmp 1 NUMPY_VERSION_MINOR)
+        list (GET _tmp 2 NUMPY_VERSION_PATCH)
+    endif (NUMPY_VERSION)
 
     ##__________________________________________________________________________
     ## Actions taken when all components have been found
@@ -112,7 +129,7 @@ if (NOT NUMPY_FOUND)
             message (STATUS "NUMPY_ROOT_DIR    = ${NUMPY_ROOT_DIR}")
             message (STATUS "NUMPY_INCLUDES    = ${NUMPY_INCLUDES}")
             message (STATUS "NUMPY_LIBRARIES   = ${NUMPY_LIBRARIES}")
-            message (STATUS "NUMPY_API_VERSION = ${NUMPY_API_VERSION}")
+            message (STATUS "NUMPY_VERSION = ${NUMPY_VERSION}")
         endif (NOT NUMPY_FIND_QUIETLY)
     else (NUMPY_FOUND)
         if (NUMPY_FIND_REQUIRED)
